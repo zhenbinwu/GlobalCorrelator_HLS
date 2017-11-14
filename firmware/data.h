@@ -90,11 +90,19 @@ struct PFChargedObj {
 	particleid_t hwId;
 	z0_t hwZ0;
 };
+inline void clear(PFChargedObj & c) {
+    c.hwPt = 0; c.hwId = 0; c.hwEta = 0; c.hwPhi = 0; 
+    c.hwZ0 =0;
+}
 struct PFNeutralObj {
 	pt_t hwPt;
 	etaphi_t hwEta, hwPhi; // relative to the region center, at calo
 	particleid_t hwId;
 };
+inline void clear(PFNeutralObj & c) {
+    c.hwPt = 0; c.hwEta = 0; c.hwPhi = 0; 
+    c.hwId =0;
+}
 struct VtxObj {
 	pt_t  hwSumPt;
 	z0_t  hwZ0;
