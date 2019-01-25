@@ -15,7 +15,8 @@ add_files -tb data/regions_TTbar_PU140.dump
 
 # reset the solution
 open_solution -reset "solution"
-set_part {xc7vx690tffg1927-2}
+set_part {xcku115-flvd1517-2-i}
+#set_part {xc7vx690tffg1927-2}
 create_clock -period 4.16667 -name default
 set_clock_uncertainty 1.5
 

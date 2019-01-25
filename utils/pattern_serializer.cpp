@@ -7,6 +7,7 @@
 MP7PatternSerializer::MP7PatternSerializer(const std::string &fname, unsigned int nmux, int nempty, unsigned int nlinks, const std::string &boardName) :
     fname_(fname), nlinks_(nlinks ? nlinks : MP7_NCHANN/nmux), nmux_(nmux), nchann_(MP7_NCHANN/nmux), nempty_(std::abs(nempty)), fillmagic_(nempty<0), file_(nullptr), ipattern_(0) 
 {
+  //nmux_=1;//override
     if (!fname.empty()) {
         file_ = fopen(fname.c_str(), "w");
         fprintf(file_, "Board %s\n", boardName.c_str());
@@ -54,11 +55,21 @@ void MP7PatternSerializer::operator()(const MP7DataWord event[MP7_NCHANN])
 template<typename T> void MP7PatternSerializer::print(unsigned int iframe, const T & event) 
 //void MP7PatternSerializer::print(const MP7DataWord event[MP7_NCHANN]) 
 {
-    fprintf(file_, "Frame %04u :", iframe);
-    for (unsigned int i = 0; i < nlinks_; ++i) {
-        fprintf(file_, " 1v%08x", unsigned(event[i]));
+  //for(unsigned int i1 = 0; i1 < 6;++i1) { //clone 6 times
+  fprintf(file_, "Frame %04u :", iframe*6);
+  unsigned int dummy=0;
+  unsigned int count=0;
+  for (unsigned int i = 0; i < MP7_NCHANN; ++i) {
+    if(i > 0 && i % 12 == 0)       { 
+      for(int j = 0; j < 60; j++) fprintf(file_, " 1v%08x", dummy);
+      fprintf(file_, "\n");
+      count++;
+      fprintf(file_, "Frame %04u :", iframe*6+count);
     }
-    fprintf(file_, "\n");
+    fprintf(file_, " 1v%08x", unsigned(event[i]));
+  }
+  for(int j = 0; j < 60; j++) fprintf(file_, " 1v%08x", dummy); 
+  fprintf(file_, "\n");
 }
 void MP7PatternSerializer::push(const MP7DataWord event[MP7_NCHANN])
 {
