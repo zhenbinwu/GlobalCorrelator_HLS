@@ -12,7 +12,7 @@ typedef ap_int<10> z0_t;  // 40cm / 0.1
 enum PID { PID_Charged=0, PID_Neutral=1, PID_Photon=2, PID_Electron=3, PID_Muon=4 };
 
 // VERTEXING
-#define NVTXBINS  15
+#define NVTXBINS 15
 #define NPOW 6
 #define NALLTRACK 1 << NPOW
 #define NSECTOR 1
@@ -34,17 +34,23 @@ enum PID { PID_Charged=0, PID_Neutral=1, PID_Photon=2, PID_Electron=3, PID_Muon=
    #define NPHOTON NEMCALO
    #define NSELCALO 4
 #else
-   #define NTRACK 15
-   #define NCALO 15
-   #define NMU 4
-   #define NEMCALO 15
+   // #define NTRACK 15
+   // #define NCALO 15
+   // #define NMU 4
+   // #define NEMCALO 15
+   // #define NPHOTON NEMCALO
+   // #define NSELCALO 10
+   #define NTRACK 7
+   #define NCALO 5
+   #define NMU 2
+   #define NEMCALO 5
    #define NPHOTON NEMCALO
-   #define NSELCALO 10
+   #define NSELCALO 4
 #endif
 
 // PUPPI & CHS
-#define NPVTRACK 7
-
+#define NPVTRACK 15
+#define NNEUTRALS NPHOTON+NSELCALO
 
 struct CaloObj {
 	pt_t hwPt;
@@ -70,9 +76,10 @@ struct TkObj {
 	pt_t hwPt, hwPtErr;
 	etaphi_t hwEta, hwPhi; // relative to the region center, at calo
 	z0_t hwZ0;
+	bool hwTightQuality;
 };
 inline void clear(TkObj & c) {
-    c.hwPt = 0; c.hwPtErr = 0; c.hwEta = 0; c.hwPhi = 0; c.hwZ0 = 0; 
+    c.hwPt = 0; c.hwPtErr = 0; c.hwEta = 0; c.hwPhi = 0; c.hwZ0 = 0; c.hwTightQuality = 0;
 }
 
 struct MuObj {
@@ -98,6 +105,7 @@ struct PFNeutralObj {
 	pt_t hwPt;
 	etaphi_t hwEta, hwPhi; // relative to the region center, at calo
 	particleid_t hwId;
+  pt_t hwPtPuppi;
 };
 inline void clear(PFNeutralObj & c) {
     c.hwPt = 0; c.hwEta = 0; c.hwPhi = 0; 
