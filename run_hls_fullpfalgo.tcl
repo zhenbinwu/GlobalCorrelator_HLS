@@ -21,7 +21,8 @@ open_solution -reset "solution1"
 #set_part {xcku9p-ffve900-2-i-EVAL}
 #set_part {xc7vx690tffg1927-2}
 #set_part {xcku5p-sfvb784-3-e}
-set_part {xcku115-flvf1924-2-i}
+#set_part {xcku115-flvf1924-2-i}
+set_part {xcku115-flvd1517-2-i}
 create_clock -period 4.16667 -name default
 set_clock_uncertainty 1.0
 #source "./nb1/solution1/directives.tcl"

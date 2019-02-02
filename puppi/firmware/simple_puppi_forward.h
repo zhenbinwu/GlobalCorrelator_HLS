@@ -1,5 +1,5 @@
-#ifndef SIMPLE_PUPPI_H
-#define SIMPLE_PUPPI_H
+#ifndef SIMPLE_PUPPI_FORWARD_H
+#define SIMPLE_PUPPI_FORWARD_H
 
 #include <cmath>
 #include "../../firmware/data.h"
@@ -8,7 +8,7 @@ typedef ap_uint<8> weight_t;
 // typedef ap_fixed<18,8> weight_t;
 #define PUPPI_TABLE_SIZE 1174
 
-//int dr2_int(etaphi_t eta1, etaphi_t phi1, etaphi_t eta2, etaphi_t phi2); //not needed if pf algo is included
+//int dr2_int(etaphi_t eta1, etaphi_t phi1, etaphi_t eta2, etaphi_t phi2);
 
 inline float erf_approx( float arg ){
     float denom = 1 + 0.278393*arg + 0.230389*arg*arg + 0.000972*arg*arg*arg + 0.078108*arg*arg*arg*arg;
@@ -43,19 +43,20 @@ static void lut_puppiweight_init(data_T table_out[N_TABLE])
     }
 }
 
-void simple_puppi_ref(PFChargedObj pfch[NTRACK], PFNeutralObj pfallne[NNEUTRALS], z0_t Z0);
-//void simple_puppi_hw(PFChargedObj pfch[NTRACK], PFNeutralObj pfallne[NNEUTRALS], z0_t Z0);
-void simple_puppi_hw(PFChargedObj pfch[NTRACK], PFNeutralObj pfallne[NNEUTRALS], tk2calo_dr_t drvals[NTRACK][NNEUTRALS], z0_t Z0);
+void simple_puppi_forward_ref(PFNeutralObj pfallne[NNEUTRALS]);
+//void simple_puppi_forward_hw(PFNeutralObj pfallne[NNEUTRALS], pt_t ptpuppi[NNEUTRALS]);
+void simple_puppi_forward_hw(PFNeutralObj pfallne[NNEUTRALS], pt_t ptpuppi[NNEUTRALS], em2calo_dr_t drvals[NPHOTON][NSELCALO]);
 void compute_puppi_weight_hw(int index, weight_t &weight);
 
 #endif
 
 #ifndef DRVALSET
 #define DRVALSET
-#define PFALGO3_DR2MAX_TK_CALO 756
 #define PFALGO3_DR2MAX_EM_CALO 525
-#define PFALGO3_DR2MAX_TK_MU   2101
-#define PFALGO3_DR2MAX_TK_EM   84
 #define PFPUPPI_DR2MAX 8404
-#define PFALGO3_TK_MAXINVPT    80
+
+//#define PFALGO3_DR2MAX_TK_CALO 27
+//#define PFALGO3_DR2MAX_EM_CALO 23
+//#define PFALGO3_DR2MAX_TK_MU   45
+//#define PFALGO3_DR2MAX_TK_EM   9
 #endif

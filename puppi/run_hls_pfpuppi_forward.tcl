@@ -5,15 +5,14 @@
 ############################################################
 
 # open the project, don't forget to reset
-open_project -reset proj_pfpuppi
+open_project -reset proj_pfpuppi_forward
 # set_top compute_puppi_weight_hw
-set_top simple_puppi_hw
-add_files firmware/simple_puppi.cpp -cflags "-DTESTMP7 -DHLS_pipeline_II=2"
+set_top simple_puppi_forward_hw
+add_files firmware/simple_puppi_forward.cpp -cflags "-DTESTMP7 -DHLS_pipeline_II=2"
 #add_files ../firmware/simple_fullpfalgo.cpp 
-add_files -tb simple_pfpuppi_test.cpp -cflags "-DTESTMP7"
-add_files -tb ../simple_fullpfalgo_ref.cpp -cflags "-DTESTMP7"
-add_files -tb simple_puppi_ref.cpp -cflags "-DTESTMP7"
-add_files -tb ../vertexing/simple_vtx_ref.cpp -cflags "-DTESTMP7"
+add_files -tb simple_pfpuppi_forward_test.cpp -cflags "-DTESTMP7"
+add_files -tb ../simple_forwardpfalgo_ref.cpp -cflags "-DTESTMP7"
+add_files -tb simple_puppi_forward_ref.cpp -cflags "-DTESTMP7"
 add_files -tb ../utils/pattern_serializer.cpp -cflags "-std=c++0x"
 add_files -tb ../utils/test_utils.cpp -cflags "-DTESTMP7"
 add_files -tb ../data/regions_TTbar_PU140.dump
@@ -28,6 +27,7 @@ set_part {xcvu9p-flgb2104-2-i}
 create_clock -period 4.16667 -name default
 set_clock_uncertainty 1.0
 #source "./nb1/solution1/directives.tcl"
+config_array_partition -maximum_size 8192
 
 config_interface -trim_dangling_port
 # do stuff

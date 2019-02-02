@@ -1,11 +1,12 @@
 #include <cstdio>
-#include "firmware/simple_fullpfalgo.h"
+#include "firmware/simple_forwardpfalgo.h"
+#include "puppi/firmware/simple_puppi_forward.h"
 #include "utils/random_inputs.h"
 #include "utils/DiscretePFInputs_IO.h"
 #include "utils/pattern_serializer.h"
 #include "utils/test_utils.h"
 
-#define NTEST 1000
+#define NTEST 10
 
 
 int main() {
@@ -25,18 +26,10 @@ int main() {
     PFNeutralObj outne[NSELCALO], outne_ref[NSELCALO];
     PFChargedObj outmupf[NMU], outmupf_ref[NMU];
 #if defined(TESTMP7)
-    /*
     MP7PatternSerializer serInPatterns( "mp7_input_patterns.txt", HLS_pipeline_II,HLS_pipeline_II-1); // mux each event into HLS_pipeline_II frames
     MP7PatternSerializer serOutPatterns("mp7_output_patterns.txt",HLS_pipeline_II,HLS_pipeline_II-1); // assume only one PF core running per chip,
     MP7PatternSerializer serInPatterns2( "mp7_input_patterns_magic.txt", HLS_pipeline_II,-HLS_pipeline_II+1); // mux each event into HLS_pipeline_II frames
     MP7PatternSerializer serOutPatterns2("mp7_output_patterns_magic.txt",HLS_pipeline_II,-HLS_pipeline_II+1); // assume only one PF core running per chip,
-    MP7PatternSerializer serInPatterns3( "mp7_input_patterns_nomux.txt");  // 
-    MP7PatternSerializer serOutPatterns3("mp7_output_patterns_nomux.txt"); // ,
-    */
-    MP7PatternSerializer serInPatterns( "mp7_input_patterns.txt",1);
-    MP7PatternSerializer serOutPatterns("mp7_output_patterns.txt",1);
-    MP7PatternSerializer serInPatterns2( "mp7_input_patterns_magic.txt");
-    MP7PatternSerializer serOutPatterns2("mp7_output_patterns_magic.txt");
     MP7PatternSerializer serInPatterns3( "mp7_input_patterns_nomux.txt");  // 
     MP7PatternSerializer serOutPatterns3("mp7_output_patterns_nomux.txt"); // ,
 #endif
@@ -76,15 +69,13 @@ int main() {
             data_in[i] = 0;
             data_out[i] = 0;
         }
-        mp7wrapped_pack_in(emcalo, calo, track, mu, data_in, hwZPV);
+        mp7wrapped_pack_in(emcalo, calo, mu, data_in);
         MP7_TOP_FUNC(data_in, data_out);
-        //mp7wrapped_unpack_out(data_out, outch, outpho, outne, outmupf);
-        mp7wrapped_unpack_out_necomb(data_out, outch, outpho, outne, outmupf, hwZPV);
+        //mp7wrapped_unpack_out(data_out, outpho, outne, outmupf);
+        mp7wrapped_unpack_out_necomb(data_out, outpho, outne, outmupf);
 		// for (int ii = 0; ii < 72; ++ii){ std::cout << ii << ", " << data_in[ii] << std::endl; }
 		
-
-
-        MP7_REF_FUNC(emcalo, calo, track, mu, outch_ref, outpho_ref, outne_ref, outmupf_ref);
+        MP7_REF_FUNC(emcalo, calo, mu, outpho_ref, outne_ref, outmupf_ref);
 
         // write out patterns for MP7 board hardware or simulator test
         serInPatterns(data_in); serOutPatterns(data_out);
@@ -112,6 +103,19 @@ int main() {
         // write out human-readable patterns
         serHR(emcalo, calo, track, mu, outch, outpho, outne, outmupf);
 
+        PFNeutralObj outallne_ref[NNEUTRALS];
+        // sort/merge neutrals (at the end of the PF algo?) - do it in test bench for now
+        for (int ipfne = 0; ipfne < NPHOTON; ++ipfne){
+            outpho_ref[ipfne].hwPtPuppi = 0;
+            outallne_ref[ipfne] = outpho_ref[ipfne];
+        }
+        for (int ipfne = NPHOTON; ipfne < NNEUTRALS; ++ipfne){
+            outne_ref[ipfne-NPHOTON].hwPtPuppi = 0;
+            outallne_ref[ipfne] = outne_ref[ipfne-NPHOTON];
+        }
+
+        simple_puppi_forward_ref( outallne_ref);
+
 #ifdef TESTMP7
         if (!MP7_VALIDATE) continue;
 #endif
@@ -123,11 +127,6 @@ int main() {
         // validation against the reference algorithm
         int errors = 0; int ntot = 0, npho = 0, nch = 0, nneu = 0, nmu = 0;
 
-        // check charged hadrons
-        for (int i = 0; i < NTRACK; ++i) {
-            if (!pf_equals(outch_ref[i], outch[i], "PF Charged", i)) errors++;
-            if (outch_ref[i].hwPt > 0) { ntot++; nch++; }
-        }
         // check photon 
         for (int i = 0; i < NPHOTON; ++i) {
             if (!pf_equals(outpho_ref[i], outpho[i], "Photon", i)) errors++;
@@ -144,12 +143,28 @@ int main() {
 
         if (errors != 0) {
             printf("Error in computing test %d (%d)\n", test, errors);
-            //printf("Inputs: \n"); debugHR.dump_inputs(emcalo, calo, track, mu);
-            //printf("Reference output: \n"); debugHR.dump_outputs(outch_ref, outpho_ref, outne_ref, outmupf_ref);
-            //printf("Current output: \n"); debugHR.dump_outputs(outch, outpho, outne, outmupf);
-            //return 1;
+            printf("Inputs: \n"); debugHR.dump_inputs(emcalo, calo, track, mu);
+            printf("Reference output: \n"); debugHR.dump_outputs(outch_ref, outpho_ref, outne_ref, outmupf_ref);
+            printf("Current output: \n"); debugHR.dump_outputs(outch, outpho, outne, outmupf);
+            return 1;
         } else {
             printf("Passed test %d (%d, %d, %d, %d)\n", test, ntot, nch, npho, nneu);
+        }
+
+        int puperrors = 0;
+        for (int i = 0; i < NPHOTON; ++i){
+            printf("hwpt = %i, hwptpuppi = %i, refptpuppi = %i, hw-ref_ptpuppi = %i \n", (int) outpho[i].hwPt, (int) outpho[i].hwPtPuppi, (int) outallne_ref[i].hwPtPuppi, int(outpho[i].hwPtPuppi-outallne_ref[i].hwPtPuppi));
+            if (outpho[i].hwPtPuppi-outallne_ref[i].hwPtPuppi != 0 && outpho[i].hwPt>0) puperrors++;
+        }
+        for (int i = 0; i < NSELCALO; ++i){
+            printf("hwpt = %i, hwptpuppi = %i, refptpuppi = %i, hw-ref_ptpuppi = %i \n", (int) outne[i].hwPt, (int) outne[i].hwPtPuppi, (int) outallne_ref[i+NPHOTON].hwPtPuppi, int(outne[i].hwPtPuppi-outallne_ref[i+NPHOTON].hwPtPuppi));
+            if (outne[i].hwPtPuppi-outallne_ref[i+NPHOTON].hwPtPuppi != 0 && outne[i].hwPt>0) puperrors++;
+        }
+        std::cout << "end of test ---- " << test << std::endl;
+
+        if (puperrors>0) {
+            printf("Found %i errors in puppi test!\n", puperrors);
+            //return errors;
         }
 
     }

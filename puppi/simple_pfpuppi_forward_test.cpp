@@ -1,13 +1,12 @@
 #include <cstdio>
-#include "../firmware/simple_fullpfalgo.h"
-#include "../vertexing/firmware/simple_vtx.h"
-#include "firmware/simple_puppi.h"
+#include "../firmware/simple_forwardpfalgo.h"
+#include "firmware/simple_puppi_forward.h"
 #include "../utils/random_inputs.h"
 #include "../utils/DiscretePFInputs_IO.h"
 #include "../utils/pattern_serializer.h"
 #include "../utils/test_utils.h"
 
-#define NTEST 50
+#define NTEST 5
 
 
 int main() {
@@ -30,6 +29,7 @@ int main() {
 
     // input/output PFPUPPI objects
     PFNeutralObj outallne[NNEUTRALS];
+    PFNeutralObj outallne_cpy[NNEUTRALS];
     PFNeutralObj outallne_ref[NNEUTRALS];
     // PFChargedObj pupch_pv[NTRACK],    pupch_pv_ref[NTRACK];
     // PFNeutralObj pupne_pv[NNEUTRALS], pupne_pv_ref[NNEUTRALS];
@@ -58,7 +58,7 @@ int main() {
         // get the inputs from the input object
         if (!inputs.nextRegion(calo, emcalo, track, mu, hwZPV)) break;
 
-        pfalgo3_full_ref(emcalo, calo, track, mu, outch_ref, outpho_ref, outne_ref, outmupf_ref);
+        pfalgo3_forward_ref(emcalo, calo, mu, outpho_ref, outne_ref, outmupf_ref);
         // pfalgo3_full(emcalo, calo, track, mu, outch, outpho, outne, outmupf);
 
         // sort/merge neutrals (at the end of the PF algo?) - do it in test bench for now
@@ -66,28 +66,33 @@ int main() {
             outpho_ref[ipfne].hwPtPuppi = 0;
             outallne_ref[ipfne] = outpho_ref[ipfne];
             outallne[ipfne] = outpho_ref[ipfne];
+            outallne_cpy[ipfne] = outpho_ref[ipfne];
         }
         for (int ipfne = NPHOTON; ipfne < NNEUTRALS; ++ipfne){
             outne_ref[ipfne-NPHOTON].hwPtPuppi = 0;
             outallne_ref[ipfne] = outne_ref[ipfne-NPHOTON];
             outallne[ipfne] = outne_ref[ipfne-NPHOTON];
+            outallne_cpy[ipfne] = outne_ref[ipfne-NPHOTON];
         }
 
         std::cout << "test " << test << std::endl;
 
         ap_uint<8> weights[NNEUTRALS];
-        VtxObj curvtx;    
-        simple_vtx_ref(track,&curvtx);
-        simple_puppi_ref( outch_ref, outallne_ref, curvtx.hwZ0);
-        simple_puppi_hw(  outch_ref, outallne,     curvtx.hwZ0);
+        pt_t ptpuppi[NNEUTRALS];
+        simple_puppi_forward_ref( outallne_ref);
+        //simple_puppi_forward_hw(  outallne, outallne_cpy, ptpuppi);
+        simple_puppi_forward_hw(  outallne, ptpuppi);
         // weight_t curweight;
         // compute_puppi_weight_hw( 100, curweight );
         // std::cout << "curweight = " << curweight << std::endl;
+        //for (int in = 0; in < NNEUTRALS; in++) {
+        //    std::cout<<"HW: eToAlphas = "<<eToAlphas[in]<<std::endl;
+        //}
 
         int errors = 0;
         for (int i = 0; i < NNEUTRALS; ++i){
-            printf("hwpt = %i, hwptpuppi = %i, hwptpuppi_ref = %i \n", (int) outallne[i].hwPt, (int) outallne[i].hwPtPuppi, (int) outallne_ref[i].hwPtPuppi);
-            if (outallne[i].hwPtPuppi-outallne_ref[i].hwPtPuppi != 0 && outallne[i].hwPt>0) errors++;
+            if (outallne[i].hwPt>0) printf("hwpt = %i, hwptpuppi = %i, hwptpuppi_ref = %i \n", (int) outallne[i].hwPt, (int) ptpuppi[i], (int) outallne_ref[i].hwPtPuppi);
+            if (ptpuppi[i]-outallne_ref[i].hwPtPuppi != 0 && outallne[i].hwPt>0) errors++;
         }
         std::cout << "end of test ---- " << test << std::endl;
 
