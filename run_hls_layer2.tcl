@@ -11,6 +11,7 @@ add_files -tb layer2/simple_layer2algo_ref.cpp -cflags "-DTESTCTP7 -I./"
 add_files -tb layer2/pattern_reader.cpp  -cflags "-DTESTCTP7 -I./"
 add_files -tb pattern_serializer.cpp -cflags "-DTESTCTP7  -std=c++0x"
 add_files -tb firmware/simple_fullpfalgo.cpp -cflags "-DTESTCTP7 -I./"
+add_files -tb utils/DiscretePFInputs_IO.h -cflags "-DTESTCTP7 -I./"
 # input data
 add_files -tb proj3-ctp7-full/solution/csim/build/ctp7_output_patterns_nomux.txt
 

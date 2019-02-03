@@ -2,8 +2,8 @@
 #include "firmware/simple_fullpfalgo.h"
 #include "layer2/simple_layer2algo_hw.h"
 #include "layer2/simple_layer2algo_ref.h"
-#include "DiscretePFInputs_IO.h"
-#include "pattern_serializer.h"
+#include "utils/DiscretePFInputs_IO.h"
+#include "utils/pattern_serializer.h"
 #include "layer2/pattern_reader.h"
 
 int main() {
