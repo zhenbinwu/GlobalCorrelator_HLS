@@ -18,7 +18,7 @@
 #ifndef  MY_CTP7PATTERNREADER_INC
 #define  MY_CTP7PATTERNREADER_INC
 
-#include "firmware/data.h"
+#include "../../firmware/data.h"
 #include <cstdio>
 #include <vector>
 #include "string.h"

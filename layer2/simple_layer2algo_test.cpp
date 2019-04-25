@@ -1,10 +1,12 @@
 #include <cstdio>
 //#include "firmware/simple_fullpfalgo.h"
-#include "layer2/simple_layer2algo_hw.h"
-#include "layer2/simple_layer2algo_ref.h"
-#include "utils/DiscretePFInputs_IO.h"
-#include "utils/pattern_serializer.h"
-#include "layer2/pattern_reader.h"
+#include "simple_layer2algo_hw.h"
+#include "simple_layer2algo_ref.h"
+#include "simple_jetcluster_hw.h"
+#include "simple_jetcluster_ref.h"
+#include "../../utils/DiscretePFInputs_IO.h"
+#include "../../utils/pattern_serializer.h"
+#include "pattern_reader.h"
 
 void mp7wrapped_unpack_out_necomb( MP7DataWord data[MP7_NCHANN], PFChargedObj pfch[NTRACK], PFNeutralObj pfpho[NPHOTON], PFNeutralObj pfne[NSELCALO], PFChargedObj pfmu[NMU], z0_t &z0);
 
@@ -24,15 +26,17 @@ int main() {
     for (int i = 0; i < NMU;        ++i) clear(outmupf[i]);
     for (int i = 0; i < MP7_NCHANN; ++i) data_in[i] = 0;
 
-    MP7PatternSerializer readPatterns ("mp7_output_patterns.txt",MP7_NCHANN);
-    readPatterns(data_in);
+    CTP7PatternReader readPatterns ("mp7_output_patterns.txt",MP7_NCHANN);
+    readPatterns.GetMP7Word(data_in);
     mp7wrapped_unpack_out_necomb(data_in, outch, outpho, outne, outmupf, hwZPV);
 
     // Compareap_uint<32> HT
     ap_uint<32> HT;
     HT=0;
-    test_PFHT(outch, outpho, outne, outmupf, HT);
-    test_PFHT_ref(outch, outpho, outne, outmupf, HT);
+    //test_PFHT(outch, outpho, outne, outmupf, HT);
+    //test_PFHT_ref(outch, outpho, outne, outmupf, HT);
+    test_JetClu(outch, outpho, outne, outmupf);
+    test_JetClu_ref(outch, outpho, outne, outmupf);
     printf("Test output HT %i \n" , int(HT));
 }
 

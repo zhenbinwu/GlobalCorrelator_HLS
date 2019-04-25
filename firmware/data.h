@@ -12,6 +12,11 @@ typedef ap_int<10> z0_t;  // 40cm / 0.1
 typedef ap_uint<14> tk2em_dr_t;
 typedef ap_uint<14> tk2calo_dr_t;
 
+// Variables for Layer2 clustering
+#define NPARTICLE 20
+#define NPARTICLE_BITS 13
+typedef ap_int<20>  etaphi2_t;
+
 enum PID { PID_Charged=0, PID_Neutral=1, PID_Photon=2, PID_Electron=3, PID_Muon=4 };
 
 // VERTEXING

@@ -1,18 +1,22 @@
 # move the configuration in here for ctp7, copy the mp7 project which just serializes the inputs
 
 # open the project, don't forget to reset
-open_project -reset "Layer2_test_v0"
-set_top test_PFHT
-add_files layer2/simple_layer2algo_hw.cpp -cflags "-DTESTCTP7 -I./"
+open_project -reset "Layer2_test_v1"
+#set_top test_PFHT
+set_top test_JetClu
+add_files layer2/simple_jetcluster_hw.cpp -cflags "-DTESTCTP7 -Ilayer2/ -I./"
+add_files -tb layer2/simple_layer2algo_hw.cpp -cflags "-DTESTCTP7 -Ilayer2/"
+add_files -tb layer2/ParallelFindMax.cpp -cflags "-DTESTCTP7 -Ilayer2/"
 ## Test main
-add_files -tb layer2/simple_layer2algo_test.cpp  -cflags "-DTESTCTP7 -I./"
-add_files -tb layer2/simple_layer2algo_ref.cpp -cflags "-DTESTCTP7 -I./"
+add_files -tb layer2/simple_layer2algo_test.cpp  -cflags "-DTESTCTP7"
+#add_files -tb layer2/simple_layer2algo_ref.cpp -cflags "-DTESTCTP7 -I./"
+## Testing jets
+add_files -tb layer2/simple_jetcluster_hw.cpp -cflags "-DTESTCTP7 -Ilayer2/ -I./"
+add_files -tb layer2/simple_jetcluster_ref.cpp -cflags "-DTESTCTP7 -Ilayer2/"
 ##
 add_files -tb layer2/pattern_reader.cpp  -cflags "-DTESTCTP7 -I./"
 add_files -tb utils/pattern_serializer.cpp -cflags "-DTESTCTP7  -std=c++0x -Iutils/"
 add_files -tb utils/DiscretePFInputs_IO.h -cflags "-DTESTCTP7 -I./"
-##add_files -tb layer2/pattern_reader.cpp  -cflags "-DTESTCTP7 -Ilayer2/"
-#add_files -tb utils/pattern_serializer.cpp -cflags "-DTESTCTP7  -std=c++0x -Iutils/"
 add_files -tb DiscretePFInputs.h    -cflags "-DTESTCTP7 -std=c++0x"
 
 # input data
