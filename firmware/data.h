@@ -16,6 +16,8 @@ typedef ap_uint<14> tk2calo_dr_t;
 #define NPARTICLE 20
 #define NPARTICLE_BITS 13
 typedef ap_int<20>  etaphi2_t;
+#define DETA 2
+#define DPHI 2
 
 enum PID { PID_Charged=0, PID_Neutral=1, PID_Photon=2, PID_Electron=3, PID_Muon=4 };
 

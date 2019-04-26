@@ -49,7 +49,8 @@ void test_JetClu(PFChargedObj inch[NTRACK], PFNeutralObj inpho[NPHOTON], PFNeutr
   static etaphi_t phis[NPARTICLE] = {0};
 
   // 2D array for storing index of particle pairs, within dEta, dPhi
-  static ap_int<1> combs[NPARTICLE][NPARTICLE] = {0};
+  static ap_int<1> combs2D[NPARTICLE][NPARTICLE] = {0};
+  static ap_int<NPARTICLE> combs1D[NPARTICLE] = {0};
   // dR^2 of the pairs
   static etaphi2_t combdRs[2*NPARTICLE] = {0};
   // Forming group of particles, based on the combination
@@ -97,7 +98,7 @@ unrollMu:for (int imu = 0; imu < NMU; ++imu) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Getting the neiboring combination ~~~~~
-  GetCombination(etas, phis, combs, combdRs);
+  //GetCombination(etas, phis, combs, combdRs);
   //DynamicGroups(combs, groups, groupcombs);
 ////~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Getting metrics ~~~~~
 
@@ -110,6 +111,54 @@ unrollMu:for (int imu = 0; imu < NMU; ++imu) {
   //}
 }
 
+
+void GetCombination2D( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_int<1> combs[NPARTICLE][NPARTICLE])
+{ 
+
+#pragma HLS ARRAY_PARTITION variable=etas    complete
+#pragma HLS ARRAY_PARTITION variable=phis    complete
+#pragma HLS ARRAY_PARTITION variable=combs   complete
+
+  Combination1: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+  Combination2: for (int j = 0; j < NPARTICLE;++j)
+    {
+#pragma HLS UNROLL
+      if (j <= i) continue;
+      etaphi_t ddeta = etas[i] - etas[j];
+      etaphi_t ddphi = phis[i] - phis[j];
+      if( ddeta <= DETA && ddphi <= DPHI)
+      {
+        combs[i][j] = 1;
+      }
+    }
+  }
+}
+
+void GetCombination1D( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_uint<NPARTICLE> combs[NPARTICLE])
+{ 
+
+#pragma HLS ARRAY_PARTITION variable=etas    complete
+#pragma HLS ARRAY_PARTITION variable=phis    complete
+#pragma HLS ARRAY_PARTITION variable=combs   complete
+
+  Combination1: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+  Combination2: for (int j = 0; j < NPARTICLE;++j)
+    {
+#pragma HLS UNROLL
+      if (j <= i) continue;
+      etaphi_t ddeta = etas[i] - etas[j];
+      etaphi_t ddphi = phis[i] - phis[j];
+      if( ddeta <= DETA && ddphi <= DPHI)
+      {
+        combs[i] &= 1 << j;
+      }
+    }
+  }
+}
 
 
 void GetCombination( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_int<1> combs[NPARTICLE][NPARTICLE], etaphi2_t combdRs[2*NPARTICLE])
@@ -140,28 +189,74 @@ void GetCombination( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTIC
 }
 
 
-//void DynamicGroups( const ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE], ap_int<1> groups[12][NPARTICLE], ap_int<1> groupcombs[12][2*NPARTICLE])
-//{
-  //int j=0, k=0;
-  //int maxidx = 0;
-////#pragma HLS ARRAY_PARTITION variable=combs complete
-////#pragma HLS ARRAY_PARTITION variable=groups complete
-////#pragma HLS ARRAY_PARTITION variable=groupcombs complete
+void DynamicGroups( const ap_uint<NPARTICLE> combs[NPARTICLE], ap_uint<NPARTICLE> grouping[NPARTICLE])
+{
+#pragma HLS ARRAY_PARTITION variable=combs complete
+#pragma HLS ARRAY_PARTITION variable=grouping complete
+//#pragma HLS ARRAY_PARTITION variable=groupcombs complete
+  grouping[NPARTICLE] = {0};
 
-//formgroups:for (int i = 0; i < 2*NPARTICLE; ++i)
-  //{
-//#pragma HLS unroll
-    //groups[j][combs[0][i]]=1;
-    //groups[j][combs[1][i]]=1;
-    //groupcombs[j][i] = 1;
-    //if (combs[1][i] > maxidx) 
-      //maxidx = combs[1][i];
-    //if (combs[0][i] > maxidx)
-    //{
-      //j++;
-    //}
-  //}
-//}
+
+  // First grouping to form relationship
+  Grouping1: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+    grouping[i] = combs[i];
+  Combination2: for (int j = 0; j < NPARTICLE;++j)
+    {
+#pragma HLS UNROLL
+      if( (grouping[i]  & combs[j]) > 0)
+        grouping[i] = grouping[i] | combs[j];
+    }
+  }
+
+  // Second grouping to detect remote relatives
+  Grouping2: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+  Combination2: for (int j = 0; j < NPARTICLE;++j)
+    {
+#pragma HLS UNROLL
+      if( (grouping[i]  & grouping[j]) > 0)
+        grouping[i] = grouping[i] | grouping[j];
+    }
+  }
+}
+
+void CountGroups( const ap_uint<NPARTICLE> grouping[NPARTICLE])
+{
+#pragma HLS ARRAY_PARTITION variable=grouping complete
+
+  ap_uint<12> partlabel[NPARTICLE];
+
+  // Each particle labels the assocaite group
+  Grouping1: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+  Combination2: for (int j = 0; j < NPARTICLE;++j)
+    {
+#pragma HLS UNROLL
+      if( (grouping[i] & 1<<j) > 0)
+        partlabel[j] = i;
+    }
+  }
+
+  ap_uint<1> grplabel[NPARTICLE] = {0};
+  // Getting the uniqe group
+  Grouping1: for (int i = 0; i < NPARTICLE; ++i)
+  {
+#pragma HLS UNROLL
+    grplabel[partlabel[j]] = 1;
+  }
+
+  // 
+
+
+
+  
+
+
+}
 
 
 
