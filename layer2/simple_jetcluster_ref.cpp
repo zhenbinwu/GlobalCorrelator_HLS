@@ -16,7 +16,7 @@
 
 #include "simple_jetcluster_ref.h"
 
-void test_JetClu_ref(PFChargedObj inch[NTRACK], PFNeutralObj inpho[NPHOTON], PFNeutralObj inne[NSELCALO], PFChargedObj inmu[NMU])
+void test_JetClu_ref(PFNeutralObj input[NPARTICLE], ap_uint<NPARTICLE>  grouping[NPARTICLE])
 {
   //Merge input and regionalized
   //Use base type as CaloObj
@@ -27,88 +27,119 @@ void test_JetClu_ref(PFChargedObj inch[NTRACK], PFNeutralObj inpho[NPHOTON], PFN
   etaphi_t phis[NPARTICLE];
 
   // 2D array for storing index of particle pairs, within dEta, dPhi
-  ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE];
-  // dR^2 of the pairs
-  etaphi2_t combdRs[2*NPARTICLE];
-  // Forming group of particles, based on the combination
-  ap_int<1> groups[12][NPARTICLE];
-  // Index of combination in the group
-  ap_int<1> groupcombs[12][2*NPARTICLE];
+  ap_uint<NPARTICLE> combs[NPARTICLE] = {0};
+  ap_uint<NPARTICLE> combsPt[NPARTICLE] = {0};
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    grouping[i] = 0;
+  }
+  //ap_uint<NPARTICLE> grouping[NPARTICLE] = {0};
+  //// dR^2 of the pairs
+  //etaphi2_t combdRs[2*NPARTICLE];
+  //// Forming group of particles, based on the combination
+  //ap_int<1> groupcombs[12][2*NPARTICLE];
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Unrolling all the inputs, ignoring types ~~~~~
-  for (int ich = 0; ich < NTRACK; ++ich) {
-#pragma HLS unroll
-    pts[idx+ich] = inch[ich].hwPt;
-    etas[idx+ich] = inch[ich].hwEta;
-    phis[idx+ich] = inch[ich].hwPhi;
+  for (int ich = 0; ich < NPARTICLE; ++ich) {
+    pts[ich] = input[ich].hwPt;
+    etas[ich] = input[ich].hwEta;
+    phis[ich] = input[ich].hwPhi;
   }
-  idx = NTRACK;
-
-  for (int iph = 0; iph < NPHOTON; ++iph) {
-    pts[idx+iph] = inpho[iph].hwPt;
-    etas[idx+iph] = inpho[iph].hwEta;
-    phis[idx+iph] = inpho[iph].hwPhi;
-  }
-  idx += NPHOTON;
-
-  for (int ine = 0; ine < NSELCALO; ++ine) {
-    pts[idx+ine] = inne[ine].hwPt;
-    etas[idx+ine] = inne[ine].hwEta;
-    phis[idx+ine] = inne[ine].hwPhi;
-  }
-  idx += NSELCALO;
-  for (int imu = 0; imu < NMU; ++imu) {
-    pts[idx+imu] = inmu[imu].hwPt;
-    etas[idx+imu] = inmu[imu].hwEta;
-    phis[idx+imu] = inmu[imu].hwPhi;
-  }
-
 
 ////~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Getting the neiboring combination ~~~~~
-  GetCombination_ref(etas, phis, combs, combdRs);
-  DynamicGroups_ref(combs, groups, groupcombs);
-
+  GetCombination_ref(pts, etas, phis, combs, combsPt);
+  DynamicGroups_ref(combs, grouping);
+  CountGroups_ref(grouping);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Getting metrics ~~~~~
 }
 
-void GetCombination_ref( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE], etaphi2_t combdRs[2*NPARTICLE])
+void GetCombination_ref(const pt_t pts[NPARTICLE], const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_uint<NPARTICLE> combsdR[NPARTICLE], ap_uint<NPARTICLE> combsPt[NPARTICLE])
 {
   const int deta = 2; // temp for eta gap, assuming 2 eta section ~0.4
   const int dphi = 2; // temp for eta gap, assuming 2 eta section ~0.4
-  int idx = 0;
-
 
   for (int i = 0; i < NPARTICLE; ++i)
   {
-    for (int j = i; j < NPARTICLE; ++j)
+    for (int j = 0; j < NPARTICLE; ++j)
     {
-      int ddeta = abs(etas[i] - etas[j] ) ;
+      int ddeta = abs(etas[i] - etas[j] );
       int ddphi = abs(phis[i] - phis[j] );
-      if( ddeta <= deta && ddphi <= dphi && idx <= 2*NPARTICLE)
+      if( ddeta <= deta && ddphi <= dphi)
       {
-        combs[0][idx] = i;
-        combs[1][idx] = j;
-        combdRs[idx] = ddeta *ddeta + ddphi*ddphi;
-        idx +=1;
+        combsdR[i].set_bit(j, 1);
       }
+      if (pts[i] > pts[j])
+        combsPt[i].set_bit(j, 1);
     }
+  }
+
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    std::cout << combsdR[i].to_string(2) << std::endl;
   }
 }
 
-void DynamicGroups_ref( const ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE], ap_int<1> groups[12][NPARTICLE], ap_int<1> groupcombs[12][2*NPARTICLE])
+void DynamicGroups_ref( const ap_uint<NPARTICLE> combs[NPARTICLE], ap_uint<NPARTICLE> grouping[NPARTICLE])
 {
-  int j=0, k=0;
-  int maxidx = 0;
-  for (int i = 0; i < 2*NPARTICLE; ++i)
+  // First grouping to form relationship
+  for (int i = 0; i < NPARTICLE; ++i)
   {
-    groups[j][combs[0][i]]=1;
-    groups[j][combs[1][i]]=1;
-    groupcombs[j][i] = 1;
-    if (combs[1][i] > maxidx) 
-      maxidx = combs[1][i];
-    if (combs[0][i] > maxidx)
+    std::cout << " org " << i <<" " << grouping[i].to_string(2) << std::endl;
+    grouping[i] = combs[i];
+    for(int j = 0; j < NPARTICLE;++j)
     {
-      j++;
+      std::cout << " i " << i <<" j " << j <<   " group " << grouping[i].to_string(2)  <<" Comb " << combs[j].to_string(2) <<" and " << (grouping[i]  & combs[j]).to_string(2) <<" "
+        <<(grouping[i] | combs[j]).to_string(2) << std::endl;
+      if( (grouping[i]  & combs[j]) > 0)
+        grouping[i] = grouping[i] | combs[j];
     }
   }
+
+  // Second grouping to detect remote relatives
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    for (int j = 0; j < NPARTICLE;++j)
+    {
+      if( (grouping[i]  & grouping[j]) > 0)
+        grouping[i] = grouping[i] | grouping[j];
+    }
+  }
+
+  for(int j = 0; j < NPARTICLE;++j)
+  {
+    std::cout <<" j " << j <<   " group " << grouping[j].to_string(2) <<std::endl;
+  }
+}
+
+void CountGroups_ref( const ap_uint<NPARTICLE> grouping[NPARTICLE])
+{
+  ap_uint<NPARTICLE> partlabel[NPARTICLE];
+
+  // Each particle labels the assocaite group
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    for (int j = 0; j < NPARTICLE;++j)
+    {
+      if( (grouping[i] & 1<<j) > 0)
+        partlabel[j] = i;
+    }
+  }
+
+  ap_uint<1> grplabel[NPARTICLE];
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    grplabel[i] = 0;
+  }
+
+  // Getting the uniqe group
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    grplabel[partlabel[i]] = 1;
+  }
+
+  for (int i = 0; i < NPARTICLE; ++i)
+  {
+    std::cout << i <<" glabel: " << grplabel[i].to_string(2) << " parlabel " <<  partlabel[i].to_string(2) << std::endl;
+  }
+
 }

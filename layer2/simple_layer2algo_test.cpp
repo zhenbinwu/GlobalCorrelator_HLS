@@ -6,38 +6,56 @@
 #include "simple_jetcluster_ref.h"
 #include "../../utils/DiscretePFInputs_IO.h"
 #include "../../utils/pattern_serializer.h"
+#include <cstdlib>
+#include <cmath>
 #include "pattern_reader.h"
+
 
 void mp7wrapped_unpack_out_necomb( MP7DataWord data[MP7_NCHANN], PFChargedObj pfch[NTRACK], PFNeutralObj pfpho[NPHOTON], PFNeutralObj pfne[NSELCALO], PFChargedObj pfmu[NMU], z0_t &z0);
 
 int main() {
     // create output PF objects
-    PFChargedObj outch[NTRACK];
-    PFNeutralObj outpho[NPHOTON];
-    PFNeutralObj outne[NSELCALO];
-    PFChargedObj outmupf[NMU];
-    z0_t hwZPV;
-    MP7DataWord data_in[MP7_NCHANN];
+    PFNeutralObj inputs[NPARTICLE];
+    PFNeutralObj outputs[NPARTICLE/2];
+    srand (time(NULL));
+    const int maxeta = pow(2, 10);
+    const int maxpt = pow(2, 15);
 
-    // Initialize objects
-    for (int i = 0; i < NTRACK;     ++i) clear(outch[i]);
-    for (int i = 0; i < NPHOTON;    ++i) clear(outpho[i]);
-    for (int i = 0; i < NSELCALO;   ++i) clear(outne[i]);
-    for (int i = 0; i < NMU;        ++i) clear(outmupf[i]);
-    for (int i = 0; i < MP7_NCHANN; ++i) data_in[i] = 0;
+    for (unsigned int i = 0; i < NPARTICLE-1; ++i) {
+        inputs[i].hwPt  = (rand() % maxpt);
+        inputs[i].hwPtPuppi  = (rand() % maxpt);
+        inputs[i].hwEta = (rand() % maxeta) - (maxeta/2);
+        inputs[i].hwPhi = (rand() % maxeta) - (maxeta/2);
+        inputs[i].hwId  =  0;
+    }
 
-    CTP7PatternReader readPatterns ("mp7_output_patterns.txt",MP7_NCHANN);
-    readPatterns.GetMP7Word(data_in);
-    mp7wrapped_unpack_out_necomb(data_in, outch, outpho, outne, outmupf, hwZPV);
+    for (unsigned int i = 0; i < NPARTICLE/2; ++i) {
+        outputs[i].hwPt  = 0;
+        outputs[i].hwEta = 0;
+        outputs[i].hwPhi = 0;
+        outputs[i].hwId  = 0;
+    }
 
-    // Compareap_uint<32> HT
-    ap_uint<32> HT;
-    HT=0;
-    //test_PFHT(outch, outpho, outne, outmupf, HT);
-    //test_PFHT_ref(outch, outpho, outne, outmupf, HT);
-    test_JetClu(outch, outpho, outne, outmupf);
-    test_JetClu_ref(outch, outpho, outne, outmupf);
-    printf("Test output HT %i \n" , int(HT));
+    for (unsigned int i = 0; i < NPARTICLE; ++i) {
+        std::cout << " Input " <<  i <<" : " << inputs[i].hwEta  << " - " << inputs[i].hwPhi<< std::endl;
+    }
+
+    ap_uint<NPARTICLE> grouping_ref[NPARTICLE];
+    ap_uint<NPARTICLE> grouping_hw[NPARTICLE];
+    for (int i = 0; i < NPARTICLE;     ++i) 
+    {
+      grouping_ref[i] = 0;
+      grouping_hw[i] = 0;
+    }
+
+    test_JetClu(inputs, outputs);
+    test_JetClu_ref(inputs, grouping_ref);
+
+    for (int i = 0; i < NPARTICLE;     ++i) 
+    {
+      printf("Test ref grouping %i %s \n" ,i ,grouping_ref[i].to_string(2));
+      printf("Test hw grouping %i %s \n" ,i ,grouping_hw[i].to_string(2));
+    }
 }
 
 
@@ -84,3 +102,4 @@ void mp7wrapped_unpack_out_necomb( MP7DataWord data[MP7_NCHANN], PFChargedObj pf
     }
     z0 = 0.5*(data[MP7_NCHANN-1](15, 0) + data[MP7_NCHANN-2](15, 0));
 }
+

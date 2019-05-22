@@ -22,8 +22,9 @@
 #include "../../firmware/data.h"
 #include "../../firmware/simple_fullpfalgo.h"
 
-void test_JetClu_ref(PFChargedObj inch[NTRACK], PFNeutralObj inpho[NPHOTON], PFNeutralObj inne[NSELCALO], PFChargedObj inmu[NMU]);
-void GetCombination_ref( const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE], etaphi2_t combdRs[2*NPARTICLE]);
-void DynamicGroups_ref( const ap_int<NPARTICLE_BITS> combs[2][2*NPARTICLE], ap_int<1> groups[12][NPARTICLE], ap_int<1> groupcombs[12][2*NPARTICLE]);
 
+void GetCombination_ref(const pt_t pts[NPARTICLE], const etaphi_t etas[NPARTICLE], const etaphi_t phis[NPARTICLE], ap_uint<NPARTICLE> combsdR[NPARTICLE], ap_uint<NPARTICLE> combsPt[NPARTICLE]);
+void CountGroups_ref( const ap_uint<NPARTICLE> grouping[NPARTICLE]);
+void DynamicGroups_ref( const ap_uint<NPARTICLE> combs[NPARTICLE], ap_uint<NPARTICLE> grouping[NPARTICLE]);
+void test_JetClu_ref(PFNeutralObj input[NPARTICLE], ap_uint<NPARTICLE> grouping[NPARTICLE]);
 #endif   // ----- #ifndef MY_SIMPLE_JETCLUSTER_REF_INC  -----

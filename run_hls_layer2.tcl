@@ -1,7 +1,7 @@
 # move the configuration in here for ctp7, copy the mp7 project which just serializes the inputs
 
 # open the project, don't forget to reset
-open_project -reset "Layer2_test_v1"
+open_project -reset "Layer2_test_v64"
 #set_top test_PFHT
 set_top test_JetClu
 add_files layer2/simple_jetcluster_hw.cpp -cflags "-DTESTCTP7 -Ilayer2/ -I./"
@@ -25,8 +25,7 @@ add_files -tb layer2/mp7_output_patterns.txt
 # reset the solution
 open_solution -reset "solutionL2"
 set_part {xc7vx690tffg1927-2}
-create_clock -period 4.16667 -name default
-set_clock_uncertainty 1.5
+create_clock -period 5 -name default
 
 #config_interface -trim_dangling_port
 # do stuff
